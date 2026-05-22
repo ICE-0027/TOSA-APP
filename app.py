@@ -50,7 +50,7 @@ REPORTS_DIR.mkdir(exist_ok=True)
 ARTIFACT_DIR.mkdir(exist_ok=True)
 
 # ── Download ML artifacts from Hugging Face (runs once, cached on disk) ────────
-HF_REPO = "ICE0027/TOSA-models"
+HF_REPO = "ICE-0027/TOSA-models"
 HF_BASE = f"https://huggingface.co/{HF_REPO}/resolve/main"
 
 ARTIFACT_FILES = [
