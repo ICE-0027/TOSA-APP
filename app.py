@@ -65,7 +65,7 @@ ARTIFACT_FILES = [
 
 @st.cache_resource(show_spinner=False)
 def download_artifacts():
-    import urllib.request
+    import requests
     missing = [f for f in ARTIFACT_FILES if not (ARTIFACT_DIR / f).is_file()]
     if missing:
         progress = st.progress(0, text="⬇️ Downloading ML models (first time only)…")
@@ -73,12 +73,21 @@ def download_artifacts():
             url = f"{HF_BASE}/{fname}"
             dest = ARTIFACT_DIR / fname
             try:
-                urllib.request.urlretrieve(url, dest)
+                progress.progress(i / len(missing),
+                                   text=f"⬇️ Downloading {i+1}/{len(missing)}: {fname} …")
+                with requests.get(url, stream=True, timeout=600) as r:
+                    r.raise_for_status()
+                    with open(dest, "wb") as fout:
+                        for chunk in r.iter_content(chunk_size=8 * 1024 * 1024):
+                            if chunk:
+                                fout.write(chunk)
             except Exception as e:
-                st.error(f"Failed to download `{fname}` from Hugging Face.\n\n{e}\n\nCheck that the file exists at: {url}")
+                if dest.exists():
+                    dest.unlink()
+                st.error(f"Failed to download `{fname}`.\n\n{e}\n\nURL: {url}")
                 st.stop()
             progress.progress((i + 1) / len(missing),
-                               text=f"⬇️ Downloaded {i+1}/{len(missing)}: {fname}")
+                               text=f"✅ Downloaded {i+1}/{len(missing)}: {fname}")
         progress.empty()
 
 download_artifacts()
