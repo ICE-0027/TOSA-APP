@@ -47,6 +47,41 @@ ARTIFACT_DIR = BASE_DIR / "artifacts"
 DB_PATH      = BASE_DIR / "Database.xlsx"
 REPORTS_DIR  = BASE_DIR / "Reports"
 REPORTS_DIR.mkdir(exist_ok=True)
+ARTIFACT_DIR.mkdir(exist_ok=True)
+
+# ── Download ML artifacts from Hugging Face (runs once, cached on disk) ────────
+HF_REPO = "ICE0027/TOSA-models"
+HF_BASE = f"https://huggingface.co/{HF_REPO}/resolve/main"
+
+ARTIFACT_FILES = [
+    "rf_model_Oil_Quality.pkl",
+    "rf_model_DGA1.pkl",
+    "rf_model_DGA2.pkl",
+    "label_encoder_Oil_Quality.pkl",
+    "label_encoder_DGA1.pkl",
+    "label_encoder_DGA2.pkl",
+    "feature_meta.json",
+]
+
+@st.cache_resource(show_spinner=False)
+def download_artifacts():
+    import urllib.request
+    missing = [f for f in ARTIFACT_FILES if not (ARTIFACT_DIR / f).is_file()]
+    if missing:
+        progress = st.progress(0, text="⬇️ Downloading ML models (first time only)…")
+        for i, fname in enumerate(missing):
+            url = f"{HF_BASE}/{fname}"
+            dest = ARTIFACT_DIR / fname
+            try:
+                urllib.request.urlretrieve(url, dest)
+            except Exception as e:
+                st.error(f"Failed to download `{fname}` from Hugging Face.\n\n{e}\n\nCheck that the file exists at: {url}")
+                st.stop()
+            progress.progress((i + 1) / len(missing),
+                               text=f"⬇️ Downloaded {i+1}/{len(missing)}: {fname}")
+        progress.empty()
+
+download_artifacts()
 
 # ── Load ML artifacts ──────────────────────────────────────────────────────────
 @st.cache_resource
@@ -69,7 +104,7 @@ try:
     MODELS_OK = True
 except Exception as _e:
     MODELS_OK = False
-    st.error(f"⚠️  Could not load ML artifacts from `{ARTIFACT_DIR}`.\n\n{_e}\n\nPlace the `artifacts/` folder next to `app.py`.")
+    st.error(f"⚠️  Could not load ML models.\n\n{_e}")
     st.stop()
 
 # ══════════════════════════════════════════════════════════════════════════════
